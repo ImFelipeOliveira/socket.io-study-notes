@@ -27,15 +27,19 @@ async function main() {
 
   io.on("connection", async (socket) => {
     console.log("user connected");
-    socket.on("chat message", async (msg) => {
+    socket.on("chat message", async (msg, clientOffset, callback) => {
       try {
         const result = await db.run(
-          "INSERT INTO messages (content) VALUES (?)",
-          msg
+          "INSERT INTO messages (content) VALUES (?, ?)",
+          msg,
+          clientOffset
         );
 
         io.emit("chat message", msg, result.lastID);
       } catch (error) {
+        if ((error as { errno?: number })?.errno === 19) {
+          callback();
+        }
         return console.error("Error inserting message:", error);
       }
     });
